@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Category - Grocery Portal</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    .category-bar { display:flex; overflow-x:auto; white-space:nowrap; padding:10px; gap:10px; }
+    .category-bar button { flex:0 0 auto; }
+    .product-grid { display:grid; grid-template-columns: repeat(auto-fill,minmax(200px,1fr)); gap:1rem; max-height:70vh; overflow-y:auto; padding:10px; }
+    .product-card { border:1px solid #ddd; border-radius:10px; padding:10px; text-align:center; background:#fff; }
+    .product-card img { width:100%; height:150px; object-fit:cover; border-radius:8px; }
+    #cart{ width: 20%; border-radius: 5px; text-decoration-color: #fff;}
+    .quantity-controls { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 10px 0; }
+    .quantity-btn { width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+    .product-description { text-align: left; margin-top: 15px; }
+    .vitamins-list { display: flex; flex-wrap: wrap; gap: 5px; margin: 10px 0; }
+    .vitamin-tag { background-color: #e9f7ef; color: #198754; padding: 3px 8px; border-radius: 15px; font-size: 0.8rem; }
+  </style>
+</head>
+<body>
+  <nav class="navbar navbar-expand-lg navbar-dark bg-success">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="index.html">iFeast</a>
+      <!-- Navbar Cart Button -->
+      <div id="cart"></div><a href="cart.html" class="btn btn-light position-relative cart-btn">
+        Cart
+        <span id="cart-count" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">0</span>
+      </a>
+    </div>
+  </nav>
+
+  <div class="container my-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <div class="category-bar">
+        <button class="btn btn-outline-success active" onclick="showCategory('vegetables', event)">Vegetables</button>
+        <button class="btn btn-outline-success" onclick="showCategory('fruits', event)">Fruits</button>
+        <button class="btn btn-outline-success" onclick="showCategory('dairy', event)">Dairy</button>
+        <button class="btn btn-outline-success" onclick="showCategory('cakes', event)">Cakes</button>
+      </div>
+      <select id="sortBy" class="form-select w-auto" onchange="sortProducts(this.value)">
+        <option value="">Sort</option>
+        <option value="price-asc">Price: Low to High</option>
+        <option value="price-desc">Price: High to Low</option>
+        <option value="alpha">Alphabetical</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="container">
+    <!-- Vegetables -->
+    <div id="vegetables" class="product-grid">
+      <!-- Vegetables products will be populated by JavaScript -->
+    </div>
+
+    <!-- Fruits -->
+    <div id="fruits" class="product-grid d-none">
+      <!-- Fruits products will be populated by JavaScript -->
+    </div>
+
+    <!-- Dairy -->
+    <div id="dairy" class="product-grid d-none">
+      <!-- Dairy products will be populated by JavaScript -->
+    </div>
+
+    <!-- Cakes -->
+    <div id="cakes" class="product-grid d-none">
+      <!-- Cakes products will be populated by JavaScript -->
+    </div>
+  </div>
+
+  <!-- Product Detail Modal -->
+  <div class="modal fade" id="productModal" tabindex="-1" aria-labelledby="productModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="productModalLabel">Product Details</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row">
+            <div class="col-md-6">
+              <img id="modalProductImage" src="" alt="Product Image" class="img-fluid rounded" onerror="this.src='//via.placeholder.com/300x200?text=Product+Image'">
+            </div>
+            <div class="col-md-6">
+              <h4 id="modalProductName"></h4>
+              <h5 id="modalProductPrice" class="text-success"></h5>
+              
+              <div class="quantity-controls mt-4">
+                <button class="btn btn-outline-secondary quantity-btn" onclick="updateQuantity(-1)">-</button>
+                <span id="quantityDisplay" class="mx-3 fs-5">1</span>
+                <button class="btn btn-outline-secondary quantity-btn" onclick="updateQuantity(1)">+</button>
+              </div>
+              
+              <div class="mt-3">
+                <p>Total: <span id="totalPrice" class="fw-bold"></span></p>
+              </div>
+              
+              <div class="mt-4">
+                <button class="btn btn-success" onclick="addToCartFromModal()">Add to Cart</button>
+                <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+              </div>
+            </div>
+          </div>
+          <div class="row mt-4">
+            <div class="col-12">
+              <h6>Description</h6>
+              <p id="modalProductDescription" class="product-description"></p>
+              
+              <h6 class="mt-3">Nutritional Benefits</h6>
+              <div id="modalProductVitamins" class="vitamins-list"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Product data with descriptions and vitamins
+    const products = {
+      vegetables: [
+        { id: 1, name: "Tomato", price: 40, image: "images/tomato.jpg", 
+          description: "Fresh, juicy tomatoes perfect for salads, sauces, and cooking. Rich in antioxidants and vitamins.", 
+          vitamins: ["Vitamin C", "Vitamin K", "Potassium", "Folate"] },
+        { id: 2, name: "Potato", price: 30, image: "images/potato.jpg", 
+          description: "Versatile potatoes ideal for boiling, baking, frying, and mashing. A great source of carbohydrates.", 
+          vitamins: ["Vitamin C", "Vitamin B6", "Potassium", "Fiber"] },
+        { id: 3, name: "Onion", price: 50, image: "images/onion.jpg", 
+          description: "Aromatic onions that add flavor to any dish. Known for their health benefits and long shelf life.", 
+          vitamins: ["Vitamin C", "Vitamin B6", "Folate", "Potassium"] },
+        { id: 4, name: "Carrot", price: 60, image: "images/carrot.jpg", 
+          description: "Sweet and crunchy carrots perfect for snacking, juicing, or cooking. Excellent for eye health.", 
+          vitamins: ["Vitamin A", "Vitamin K", "Potassium", "Fiber"] },
+        { id: 5, name: "Cabbage", price: 35, image: "images/cabbage.jpg", 
+          description: "Crisp cabbage leaves great for salads, stir-fries, and fermenting. Low in calories and high in nutrients.", 
+          vitamins: ["Vitamin C", "Vitamin K", "Folate", "Fiber"] },
+        { id: 6, name: "Cauliflower", price: 45, image: "images/cauliflower.jpg", 
+          description: "Versatile cauliflower that can be roasted, steamed, or mashed. A low-carb alternative to many dishes.", 
+          vitamins: ["Vitamin C", "Vitamin K", "Folate", "Fiber"] },
+        { id: 7, name: "Spinach", price: 25, image: "images/spinach.jpg", 
+          description: "Nutrient-packed spinach leaves perfect for salads, smoothies, and cooked dishes. High in iron and vitamins.", 
+          vitamins: ["Vitamin A", "Vitamin C", "Iron", "Calcium"] },
+        { id: 8, name: "Capsicum", price: 70, image: "images/capsicum.jpg", 
+          description: "Colorful bell peppers that add crunch and flavor to dishes. Available in green, red, and yellow varieties.", 
+          vitamins: ["Vitamin C", "Vitamin A", "Vitamin B6", "Folate"] },
+        { id: 9, name: "Brinjal", price: 55, image: "images/brinjal.jpg", 
+          description: "Also known as eggplant, brinjal is a versatile vegetable used in many cuisines worldwide.", 
+          vitamins: ["Fiber", "Potassium", "Vitamin C", "Vitamin K"] },
+        { id: 10, name: "Beans", price: 80, image: "images/beans.jpg", 
+          description: "Fresh green beans that are crisp and flavorful. Perfect for steaming, stir-frying, or adding to salads.", 
+          vitamins: ["Vitamin C", "Vitamin K", "Fiber", "Folate"] }
+      ],
+      fruits: [
+        { id: 11, name: "Apple", price: 150, image: "images/apple.jpg", 
+          description: "Crisp and sweet apples perfect for snacking, baking, or making juices. Available in various varieties.", 
+          vitamins: ["Vitamin C", "Fiber", "Potassium", "Antioxidants"] },
+        { id: 12, name: "Banana", price: 50, image: "images/banana.jpg", 
+          description: "Energy-packed bananas that are perfect for quick snacks, smoothies, or baking. Rich in potassium.", 
+          vitamins: ["Potassium", "Vitamin B6", "Vitamin C", "Fiber"] },
+        { id: 13, name: "Orange", price: 80, image: "images/orange.jpg", 
+          description: "Juicy oranges bursting with vitamin C. Perfect for fresh juice, snacks, or adding to salads.", 
+          vitamins: ["Vitamin C", "Fiber", "Potassium", "Folate"] },
+        { id: 14, name: "Mango", price: 120, image: "images/mango.jpg", 
+          description: "The king of fruits! Sweet, juicy mangoes perfect for eating fresh, making smoothies, or desserts.", 
+          vitamins: ["Vitamin C", "Vitamin A", "Fiber", "Folate"] },
+        { id: 15, name: "Grapes", price: 90, image: "images/grapes.jpg", 
+          description: "Sweet and juicy grapes perfect for snacking, making juice, or adding to fruit salads.", 
+          vitamins: ["Vitamin C", "Vitamin K", "Potassium", "Antioxidants"] },
+        { id: 16, name: "Pineapple", price: 60, image: "images/pineapple.jpg", 
+          description: "Tropical pineapple with sweet and tangy flavor. Great for fresh eating, juices, or grilling.", 
+          vitamins: ["Vitamin C", "Manganese", "Fiber", "Bromelain"] },
+        { id: 17, name: "Watermelon", price: 40, image: "images/watermelon.jpg", 
+          description: "Refreshing watermelon perfect for hot days. High water content makes it hydrating and delicious.", 
+          vitamins: ["Vitamin C", "Vitamin A", "Potassium", "Lycopene"] },
+        { id: 18, name: "Papaya", price: 55, image: "images/papaya.jpg", 
+          description: "Tropical papaya with sweet orange flesh. Great for digestion and packed with nutrients.", 
+          vitamins: ["Vitamin C", "Vitamin A", "Folate", "Papain"] },
+        { id: 19, name: "Kiwi", price: 200, image: "images/kiwi.jpg", 
+          description: "Tangy and sweet kiwi fruit with vibrant green flesh. Excellent source of vitamin C.", 
+          vitamins: ["Vitamin C", "Vitamin K", "Fiber", "Potassium"] },
+        { id: 20, name: "Pomegranate", price: 180, image: "images/pomegranate.jpg", 
+          description: "Jewel-like pomegranate seeds that are both delicious and nutritious. Great for salads and juices.", 
+          vitamins: ["Vitamin C", "Vitamin K", "Fiber", "Antioxidants"] }
+      ],
+      dairy: [
+        { id: 21, name: "Milk", price: 50, image: "images/milk.jpg", 
+          description: "Fresh, pure milk rich in calcium and protein. Perfect for drinking, cooking, or making dairy products.", 
+          vitamins: ["Calcium", "Protein", "Vitamin D", "Vitamin B12"] },
+        { id: 22, name: "Curd", price: 60, image: "images/curd.jpg", 
+          description: "Creamy and tangy curd made from pure milk. Great for digestion and as a side with meals.", 
+          vitamins: ["Calcium", "Protein", "Probiotics", "Vitamin B12"] },
+        { id: 23, name: "Butter", price: 120, image: "images/butter.jpg", 
+          description: "Rich, creamy butter perfect for cooking, baking, or spreading on bread.", 
+          vitamins: ["Vitamin A", "Vitamin D", "Vitamin E", "Saturated Fats"] },
+        { id: 24, name: "Cheese", price: 150, image: "images/cheese.jpg", 
+          description: "Delicious cheese that adds flavor to sandwiches, pizzas, and various dishes.", 
+          vitamins: ["Calcium", "Protein", "Vitamin B12", "Phosphorus"] },
+        { id: 25, name: "Paneer", price: 200, image: "images/paneer.jpg", 
+          description: "Fresh Indian cottage cheese that's versatile for curries, grilling, or snacking.", 
+          vitamins: ["Calcium", "Protein", "Phosphorus", "Selenium"] },
+        { id: 26, name: "Cream", price: 100, image: "images/cream.jpg", 
+          description: "Rich cream perfect for desserts, sauces, and coffee. Adds richness to any dish.", 
+          vitamins: ["Calcium", "Vitamin A", "Fat", "Riboflavin"] },
+        { id: 27, name: "Ghee", price: 500, image: "images/ghee.jpg", 
+          description: "Pure clarified butter with a rich, nutty flavor. Ideal for cooking and traditional recipes.", 
+          vitamins: ["Vitamin A", "Vitamin E", "Vitamin K", "Healthy Fats"] },
+        { id: 28, name: "Lassi", price: 30, image: "images/lassi.jpg", 
+          description: "Refreshing yogurt-based drink available in sweet or salty varieties. Perfect summer cooler.", 
+          vitamins: ["Calcium", "Protein", "Probiotics", "Vitamin B12"] },
+        { id: 29, name: "Flavoured Milk", price: 40, image: "images/flavoured-milk.jpg", 
+          description: "Delicious milk with various flavors like chocolate, strawberry, or vanilla.", 
+          vitamins: ["Calcium", "Protein", "Vitamin D", "Vitamin B12"] },
+        { id: 30, name: "Khoya", price: 250, image: "images/khoya.jpg", 
+          description: "Dried whole milk used in Indian sweets and desserts. Rich and creamy texture.", 
+          vitamins: ["Calcium", "Protein", "Fat", "Carbohydrates"] }
+      ],
+      cakes: [
+        { id: 31, name: "Black Forest", price: 500, image: "images/black-forest.jpg", 
+          description: "Classic chocolate cake with cherries and whipped cream. A timeless favorite for celebrations.", 
+          vitamins: ["Carbohydrates", "Sugar", "Fat", "Protein"] },
+        { id: 32, name: "Chocolate Cake", price: 600, image: "images/chocolate-cake.jpg", 
+          description: "Rich, moist chocolate cake with decadent frosting. Perfect for chocolate lovers.", 
+          vitamins: ["Carbohydrates", "Sugar", "Fat", "Protein"] },
+        { id: 33, name: "Vanilla Cake", price: 400, image: "images/vanilla-cake.jpg", 
+          description: "Light and fluffy vanilla cake with creamy frosting. A versatile base for many celebrations.", 
+          vitamins: ["Carbohydrates", "Sugar", "Fat", "Protein"] },
+        { id: 34, name: "Red Velvet", price: 700, image: "images/red-velvet.jpg", 
+          description: "Striking red cake with cream cheese frosting. A visually stunning and delicious choice.", 
+          vitamins: ["Carbohydrates", "Sugar", "Fat", "Protein"] },
+        { id: 35, name: "Strawberry Cake", price: 550, image: "images/strawberry-cake.jpg", 
+          description: "Fresh strawberry-flavored cake with real fruit. Light and fruity dessert option.", 
+          vitamins: ["Carbohydrates", "Sugar", "Fat", "Vitamin C"] },
+        { id: 36, name: "Pineapple Cake", price: 500, image: "images/pineapple-cake.jpg", 
+          description: "Tropical pineapple cake with fruity flavors. Perfect for summer parties.", 
+          vitamins: ["Carbohydrates", "Sugar", "Fat", "Vitamin C"] },
+        { id: 37, name: "Butterscotch Cake", price: 600, image: "images/butterscotch-cake.jpg", 
+          description: "Rich butterscotch-flavored cake with caramel notes. A sweet indulgence.", 
+          vitamins: ["Carbohydrates", "Sugar", "Fat", "Protein"] },
+        { id: 38, name: "Fruit Cake", price: 450, image: "images/fruit-cake.jpg", 
+          description: "Dense cake filled with dried fruits and nuts. A traditional favorite for holidays.", 
+          vitamins: ["Carbohydrates", "Sugar", "Fat", "Fiber"] },
+        { id: 39, name: "Cupcakes", price: 300, image: "images/cupcakes.jpg", 
+          description: "Individual-sized cakes with various flavors and frostings. Perfect for parties.", 
+          vitamins: ["Carbohydrates", "Sugar", "Fat", "Protein"] },
+        { id: 40, name: "Brownie", price: 250, image: "images/brownie.jpg", 
+          description: "Dense, fudgy chocolate brownies. Rich and decadent treat for chocolate lovers.", 
+          vitamins: ["Carbohydrates", "Sugar", "Fat", "Protein"] }
+      ]
+    };
+
+    // Current product in modal
+    let currentProduct = null;
+    let currentQuantity = 1;
+
+    // Initialize the page with products
+    document.addEventListener('DOMContentLoaded', function() {
+      renderAllProducts();
+      updateCartCount();
+    });
+
+    // Render all products in their respective categories
+    function renderAllProducts() {
+      for (const category in products) {
+        const container = document.getElementById(category);
+        container.innerHTML = '';
+        
+        products[category].forEach(product => {
+          const productCard = document.createElement('div');
+          productCard.className = 'product-card';
+          productCard.innerHTML = `
+            <img src="${product.image}" alt="${product.name}" onerror="this.src='https://via.placeholder.com/200x150?text=${encodeURIComponent(product.name)}'">
+            <h6>${product.name}</h6>
+            <p>₹${product.price}${getUnitForCategory(category)}</p>
+            <button class="btn btn-sm btn-outline-primary" onclick="viewProduct(${product.id})">View Details</button>
+          `;
+          container.appendChild(productCard);
+        });
+      }
+    }
+
+    // Get unit based on category
+    function getUnitForCategory(category) {
+      switch(category) {
+        case 'vegetables': return '/kg';
+        case 'fruits': return '/kg';
+        case 'dairy': return '/unit';
+        case 'cakes': return '/kg';
+        default: return '';
+      }
+    }
+
+    // Get unit for specific product in modal
+    function getUnitForProduct(category, productName) {
+      switch(category) {
+        case 'vegetables': return '/kg';
+        case 'fruits': return '/kg';
+        case 'dairy': 
+          return productName === 'Milk' ? '/L' : 
+                 productName === 'Butter' ? '/500g' :
+                 productName === 'Cheese' ? '/200g' :
+                 productName === 'Cream' ? '/200ml' :
+                 productName === 'Lassi' ? '/200ml' :
+                 productName === 'Flavoured Milk' ? '/200ml' : '/kg';
+        case 'cakes': 
+          return productName === 'Cupcakes' ? '/6pcs' :
+                 productName === 'Brownie' ? '/pack' : '/kg';
+        default: return '';
+      }
+    }
+
+    // Show product details in modal
+    function viewProduct(productId) {
+      // Find product by ID
+      for (const category in products) {
+        const product = products[category].find(p => p.id === productId);
+        if (product) {
+          currentProduct = product;
+          currentQuantity = 1;
+          
+          // Set modal content
+          document.getElementById('modalProductImage').src = product.image;
+          document.getElementById('modalProductImage').alt = product.name;
+          document.getElementById('modalProductName').textContent = product.name;
+          document.getElementById('modalProductPrice').textContent = `${product.price}${getUnitForProduct(category, product.name)}`;
+          document.getElementById('modalProductDescription').textContent = product.description;
+          
+          // Set vitamins
+          const vitaminsContainer = document.getElementById('modalProductVitamins');
+          vitaminsContainer.innerHTML = '';
+          product.vitamins.forEach(vitamin => {
+            const vitaminTag = document.createElement('span');
+            vitaminTag.className = 'vitamin-tag';
+            vitaminTag.textContent = vitamin;
+            vitaminsContainer.appendChild(vitaminTag);
+          });
+          
+          // Update quantity and total
+          updateQuantity(0);
+          
+          // Show modal
+          const modal = new bootstrap.Modal(document.getElementById('productModal'));
+          modal.show();
+          break;
+        }
+      }
+    }
+
+    // Update quantity in modal
+    function updateQuantity(change) {
+      currentQuantity = Math.max(1, currentQuantity + change);
+      document.getElementById('quantityDisplay').textContent = currentQuantity;
+      
+      const total = currentProduct.price * currentQuantity;
+      document.getElementById('totalPrice').textContent = `₹${total}`;
+    }
+
+    // Add to cart from modal
+    function addToCartFromModal() {
+      if (currentProduct) {
+        addToCart(currentProduct.name, currentProduct.price, currentProduct.image, currentQuantity);
+        const modal = bootstrap.Modal.getInstance(document.getElementById('productModal'));
+        modal.hide();
+      }
+    }
+
+    // Add to cart function
+    function addToCart(name, price, image, quantity = 1) {
+      let cart = JSON.parse(localStorage.getItem("cart")) || [];
+      const existing = cart.find(item => item.name === name);
+      
+      if (existing) {
+        existing.quantity += quantity;
+      } else {
+        cart.push({ name, price, image, quantity });
+      }
+      
+      localStorage.setItem("cart", JSON.stringify(cart));
+      updateCartCount();
+      alert(`${name} (${quantity}) added to cart!`);
+    }
+
+    // Update cart count
+    function updateCartCount() {
+      const cart = JSON.parse(localStorage.getItem("cart")) || [];
+      const count = cart.reduce((acc, item) => acc + item.quantity, 0);
+      document.getElementById('cart-count').textContent = count;
+    }
+
+    // Show category
+    function showCategory(category, evt) {
+      document.querySelectorAll('.product-grid').forEach(grid => grid.classList.add('d-none'));
+      const el = document.getElementById(category);
+      if (el) el.classList.remove('d-none');
+      document.querySelectorAll('.category-bar button').forEach(btn => btn.classList.remove('active'));
+      if (evt && evt.currentTarget) evt.currentTarget.classList.add('active');
+    }
+
+    // Sort products
+    function sortProducts(mode) {
+      const grid = document.querySelector('.product-grid:not(.d-none)');
+      if (!grid) return;
+      const cards = Array.from(grid.querySelectorAll('.product-card'));
+      cards.sort((a,b) => {
+        const nameA = a.querySelector('h6')?.textContent.trim()||'';
+        const priceA = Number((a.querySelector('p')?.textContent||'').replace(/[^0-9]/g,''))||0;
+        const nameB = b.querySelector('h6')?.textContent.trim()||'';
+        const priceB = Number((b.querySelector('p')?.textContent||'').replace(/[^0-9]/g,''))||0;
+        if (mode === 'price-asc') return priceA - priceB;
+        if (mode === 'price-desc') return priceB - priceA;
+        if (mode === 'alpha') return nameA.localeCompare(nameB);
+        return 0;
+      });
+      cards.forEach(c => grid.appendChild(c));
+    }
+  </script>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

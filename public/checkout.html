@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Checkout - Grocery Portal</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+  <!-- Navbar -->
+  <header>
+    <nav class="navbar navbar-expand-lg navbar-light bg-light shadow-sm">
+      <div class="container">
+        <a class="navbar-brand fw-bold" href="index.html">Grocery Portal</a>
+      </div>
+    </nav>
+  </header>
+
+  <!-- Checkout Section -->
+  <main class="container my-5">
+    <h2 class="mb-4">Checkout</h2>
+    <form class="row g-4">
+      <div class="col-md-6">
+        <h4>Billing Details</h4>
+        <div class="mb-3">
+          <label class="form-label">Full Name</label>
+          <input type="text" class="form-control" required>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Address</label>
+          <textarea class="form-control" rows="3" required></textarea>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Phone</label>
+          <input type="tel" class="form-control" required>
+        </div>
+      </div>
+
+      <div class="col-md-6">
+        <h4>Order Summary</h4>
+        <ul id="order-summary" class="list-group mb-3">
+          <!-- Cart items will load here dynamically -->
+        </ul>
+
+        <h5>Payment Method</h5>
+        <div class="form-check">
+          <input class="form-check-input" type="radio" name="payment" id="cod" checked>
+          <label class="form-check-label" for="cod">Cash on Delivery</label>
+        </div>
+        <div class="form-check mb-3">
+          <input class="form-check-input" type="radio" name="payment" id="card">
+          <label class="form-check-label" for="card">Credit/Debit Card</label>
+        </div>
+        <button type="button" class="btn btn-success w-100" onclick="placeOrder()">Place Order</button>
+      </div>
+    </form>
+  </main>
+
+  <!-- Footer -->
+  <footer class="bg-light text-center py-3 border-top">
+    <p class="mb-0">© 2025 Grocery Portal. All rights reserved.</p>
+  </footer>
+
+ <script>
+  // --- TAX TABLE ---
+  const TAX_RATES = {
+    Fruits: 0.5,
+    Vegetables: 0.5,
+    Dairy: 6.5,
+    "Dairy Products": 6.5,
+    Cakes: 15,
+    "Bakery Products": 15,
+    "Cakes & Bakery Products": 15
+  };
+
+  // --- SIMPLE PRODUCT CATEGORY DETECTOR ---
+  function getCategory(productName) {
+    const n = productName.toLowerCase();
+    if (["apple","banana","orange","mango","grapes","pineapple","watermelon","papaya","kiwi","pomegranate"].some(f => n.includes(f))) 
+      return "Fruits";
+    if (["tomato","potato","onion","carrot","cabbage","cauliflower","spinach","capsicum","brinjal","beans"].some(f => n.includes(f))) 
+      return "Vegetables";
+    if (["milk","curd","butter","cheese","paneer","cream","ghee","lassi","flavoured","khoya"].some(f => n.includes(f))) 
+      return "Dairy";
+    if (["cake","cupcake","brownie","forest","velvet","bakery","pastry"].some(f => n.includes(f))) 
+      return "Cakes";
+    return "General";
+  }
+
+  function loadOrderSummary() {
+    const cart = JSON.parse(localStorage.getItem("cart")) || [];
+    const orderSummary = document.getElementById("order-summary");
+    orderSummary.innerHTML = "";
+
+    let subtotal = 0;
+    let totalTax = 0;
+
+    if (cart.length === 0) {
+      orderSummary.innerHTML = `<li class="list-group-item text-center">Your cart is empty</li>`;
+      return;
+    }
+
+    cart.forEach(item => {
+      const baseAmount = item.price * item.quantity;
+      const category = item.category || getCategory(item.name);
+      const taxRate = TAX_RATES[category] || 0;
+      const taxAmount = (baseAmount * taxRate) / 100;
+
+      subtotal += baseAmount;
+      totalTax += taxAmount;
+
+      const li = document.createElement("li");
+      li.className = "list-group-item d-flex justify-content-between flex-column";
+      li.innerHTML = `
+        <div class="d-flex justify-content-between w-100">
+          <span>${item.name} (x${item.quantity})</span>
+          <span>₹${baseAmount.toFixed(2)}</span>
+        </div>
+        <small class="text-muted">Category: ${category} | Tax: ${taxRate}% → ₹${taxAmount.toFixed(2)}</small>
+      `;
+      orderSummary.appendChild(li);
+    });
+
+    const total = subtotal + totalTax;
+
+    // Subtotal
+    orderSummary.innerHTML += `
+      <li class="list-group-item d-flex justify-content-between fw-semibold">
+        <span>Subtotal</span><span>₹${subtotal.toFixed(2)}</span>
+      </li>
+      <li class="list-group-item d-flex justify-content-between fw-semibold">
+        <span>Total Tax</span><span>₹${totalTax.toFixed(2)}</span>
+      </li>
+      <li class="list-group-item d-flex justify-content-between fw-bold">
+        <span>Grand Total</span><span>₹${total.toFixed(2)}</span>
+      </li>
+    `;
+  }
+
+  function placeOrder() {
+    localStorage.removeItem("cart");
+    window.location.href = "success.html";
+  }
+
+  window.onload = loadOrderSummary;
+</script>
+
+</body>
+</html>
